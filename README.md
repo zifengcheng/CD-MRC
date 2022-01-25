@@ -1,4 +1,6 @@
 # CD-MRC
+This repo contains the code of the following paper:
+
 A Consistent Dual-MRC Framework for Emotion-Cause Pair Extraction
 
 
