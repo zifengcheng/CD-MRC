@@ -14,7 +14,9 @@ class Network(nn.Module):
         self.fc = nn.Linear(400,2)
         self.dropout1 = nn.Dropout(0.1)
         self.dropout2 = nn.Dropout(0.1)
-        self.lstm1 = nn.LSTM(768,100,bidirectional=True,batch_first=True)
+        self.fc1 = nn.Linear(768,200)
+
+        self.lstm1 = nn.TransformerEncoderLayer(d_model=200, nhead=1,dim_feedforward=200, dropout=0)
 
         self.fc5 = nn.Linear(768,1)
 
@@ -24,7 +26,7 @@ class Network(nn.Module):
         bert_output = self.bert(input_ids=bert_token_b.to(DEVICE),
                                 attention_mask=bert_masks_b.to(DEVICE))
         doc_sents_h = self.batched_index_select(bert_output, bert_clause_b.to(DEVICE))
-        doc_sents_h ,_= self.lstm1(doc_sents_h)
+        doc_sents_h = self.lstm1(self.fc1(doc_sents_h).permute(1,0,2)).permute(1,0,2)
         doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
         pred = self.fc(doc_sents_h)
     
@@ -108,7 +110,7 @@ class Network(nn.Module):
         bert_output = self.bert(input_ids=bert_token_b.to(DEVICE),attention_mask=bert_masks_b.to(DEVICE))
 
         doc_sents_h = self.batched_index_select(bert_output, bert_clause_b.to(DEVICE))
-        doc_sents_h ,_= self.lstm1(doc_sents_h)
+        doc_sents_h = self.lstm1(self.fc1(doc_sents_h.permute(1,0,2))).permute(1,0,2)
         doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
         pred_e = self.fc(doc_sents_h).argmax(2)
                                                                                                                                                                                 
@@ -173,7 +175,7 @@ class Network(nn.Module):
                                             attention_mask = input_ids.bool().long().to(DEVICE))
                     #print(bert_output[0].shape,bert_output.last_hidden_state.shape)
                     doc_sents_h = self.batched_index_select(bert_output, bert_clause_b_2.to(DEVICE))
-                    doc_sents_h ,_= self.lstm1(doc_sents_h)
+                    doc_sents_h = self.lstm1(self.fc1(doc_sents_h).permute(1,0,2)).permute(1,0,2)
                     doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
                     pred_c = F.softmax(self.fc(doc_sents_h),-1).squeeze(0)
                     for k in range(pred_c.shape[0]):
@@ -200,7 +202,7 @@ class Network(nn.Module):
         bert_output = self.bert(input_ids=bert_token_b_.to(DEVICE),attention_mask=bert_masks_b_.to(DEVICE))
 
         doc_sents_h = self.batched_index_select(bert_output, bert_clause_b_.to(DEVICE))
-        doc_sents_h ,_= self.lstm1(doc_sents_h)
+        doc_sents_h = self.lstm1(self.fc1(doc_sents_h).permute(1,0,2)).permute(1,0,2)
         doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
         pred_c = self.fc(doc_sents_h).argmax(2)
                                                                                                                                                                                 
@@ -270,7 +272,7 @@ class Network(nn.Module):
 
                     #print(bert_output[0].shape,bert_output.last_hidden_state.shape)
                     doc_sents_h = self.batched_index_select(bert_output, bert_clause_b_2.to(DEVICE))
-                    doc_sents_h ,_= self.lstm1(doc_sents_h)
+                    doc_sents_h = self.lstm1(self.fc1(doc_sents_h).permute(1,0,2)).permute(1,0,2)
                     doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
                     pred_c_ = F.softmax(self.fc(doc_sents_h),-1).squeeze(0)
                     for k in range(pred_c_.shape[0]):
