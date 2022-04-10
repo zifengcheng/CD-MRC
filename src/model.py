@@ -142,7 +142,7 @@ class Network(nn.Module):
                     if tmp[j] ==0:
                         continue
                     elif pred_e.shape[1]-1 ==j or tmp[j+1]==0: # final clause
-                        emotion_cause = [101,6929,702,3221,2658,2697,2094,1368] + document[tmp[j]+1:] + [2190,2418,4638,1333,1728,2094,1368,102]
+                        emotion_cause = [101,6929,702,3221,2658,2697,2094,1368] + document[tmp[j]+1:-1] + [2190,2418,4638,1333,1728,2094,1368,102]
                     else:
                         emotion_cause = [101,6929,702,3221,2658,2697,2094,1368] + document[tmp[j]+1:tmp[j+1]-1] + [2190,2418,4638,1333,1728,2094,1368,102]
                     #print('emotion_cause is ',emotion_cause)
@@ -239,7 +239,7 @@ class Network(nn.Module):
                     if tmp[j] ==0:
                         continue
                     elif pred_c.shape[1]-1 ==j or tmp[j+1]==0: # final clause
-                        emotion_cause = [101,6929,702,3221,1333,1728,2094,1368] + document[tmp[j]+1:] + [2190,2418,4638,2658,2697,2094,1368,102]
+                        emotion_cause = [101,6929,702,3221,1333,1728,2094,1368] + document[tmp[j]+1:-1] + [2190,2418,4638,2658,2697,2094,1368,102]
                     else:
                         emotion_cause = [101,6929,702,3221,1333,1728,2094,1368] + document[tmp[j]+1:tmp[j+1]-1] + [2190,2418,4638,2658,2697,2094,1368,102]                    
 
