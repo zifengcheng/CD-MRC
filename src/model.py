@@ -40,7 +40,7 @@ class Network(nn.Module):
         print(dummy.shape,dummy)
         doc_sents_h = hidden_state.gather(1, dummy)
         print(doc_sents_h.shape)
-        return doc_sents_h'''
+        return doc_sents_h
 
     def batched_index_select(self, bert_output, bert_clause_b):
         #print(bert_output)
@@ -65,6 +65,38 @@ class Network(nn.Module):
                         hidden = torch.mm(hidden.permute(1,0),weight).squeeze(1)
                     doc_sents_h[i,j,:] = hidden 
                 
+        return doc_sents_h'''
+    
+    def batched_index_select(self, bert_output, bert_clause_b):
+        #print(bert_output)
+        hidden_state = bert_output[0]
+        doc_sents_h = torch.zeros(bert_clause_b.size(0), bert_clause_b.size(1) + 1, hidden_state.size(2)).cuda()
+        #print(doc_sents_h.shape)
+        #print(hidden_state.shape,bert_clause_b.shape)
+        for i in range(doc_sents_h.shape[0]):
+            for j in range(doc_sents_h.shape[1]):
+                if j == doc_sents_h.shape[1] -1:
+                    hidden = hidden_state[i,bert_clause_b[i,j-1]:,:]
+                    weight = F.softmax(self.fc5(hidden),0)
+                    hidden = torch.mm(hidden.permute(1,0),weight).squeeze(1)
+                    doc_sents_h[i,j,:] = hidden
+                elif bert_clause_b[i,j]!=0:
+                    if j==0:
+                        hidden = hidden_state[i,0:bert_clause_b[i,j],:]
+                        weight = F.softmax(self.fc5(hidden),0)
+                        hidden = torch.mm(hidden.permute(1,0),weight).squeeze(1)
+                    else:
+                        hidden = hidden_state[i,bert_clause_b[i,j-1]:bert_clause_b[i,j],:]
+                        weight = F.softmax(self.fc5(hidden),0)
+                        hidden = torch.mm(hidden.permute(1,0),weight).squeeze(1)
+                    doc_sents_h[i,j,:] = hidden
+                else:
+                    hidden = hidden_state[i,bert_clause_b[i,j-1]:,:]
+                    weight = F.softmax(self.fc5(hidden),0)
+                    hidden = torch.mm(hidden.permute(1,0),weight).squeeze(1)
+                    doc_sents_h[i,j,:] = hidden
+                    break    
+            
         return doc_sents_h
 
     def loss_pre(self, pred_e, y_emotions, source_length):
