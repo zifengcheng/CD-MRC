@@ -221,6 +221,100 @@ class Network(nn.Module):
                                         pair7.append(int(doc_id[i] * 10000 +j * 100 + k+101))
                                         if pred_c[k,1] >=0.9:
                                             pair9.append(int(doc_id[i] * 10000 +j * 100 + k+101))
+                                            
+        #print('finish')                                 
+        #print('pair1 is',pair1)                
+
+        # pair extraction based on cause-guided                         
+
+        #print('after filter',bert_token_b.shape,bert_masks_b.shape)
+        bert_output = self.bert(input_ids=bert_token_b_.to(DEVICE),attention_mask=bert_masks_b_.to(DEVICE))
+
+        doc_sents_h = self.batched_index_select(bert_output, bert_clause_b_.to(DEVICE))
+        doc_sents_h = self.lstm1(self.fc1(doc_sents_h).permute(1,0,2)).permute(1,0,2)
+        doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
+        pred_c = self.fc(doc_sents_h).argmax(2)
+
+        # construct input
+
+        for i in range(pred_c.shape[0]): # batch 
+            c = bert_token_b_[i].numpy().tolist().copy()
+            if 0 in c:
+                document = c[c.index(101,1):c.index(0)]
+            else:
+                document = c[c.index(101,1):]
+
+            b_clause_b = bert_clause_b_[i].tolist()
+            #b_clause_b.pop(0)
+            #b_clause_b.append(0)
+            #b_clause_b.insert(0,0)
+            tmp = []
+            for z in b_clause_b:
+                if z !=0:
+                    tmp.append(z-9)
+                else:
+                    tmp.append(0)
+
+
+            #print('document is ',document,doc_id[i],tmp)
+            for j in range(pred_c.shape[1]): # seq_len
+                input = []
+                #print(pred_e.shape)
+                if pred_c[i,j] == 1:
+                    #print('document',doc_id_2[i],'clause', j ,'is cause clause')
+                    #print('document is ',document)
+                    #print(j,pred_e.shape)
+                    #if bert_clause_b[]
+                    if tmp[j] ==0:
+                        continue
+                    elif pred_c.shape[1]-1 ==j or tmp[j+1]==0: # final clause
+                        emotion_cause = [101,6929,702,3221,1333,1728,2094,1368] + document[tmp[j]+1:-1] + [2190,2418,4638,2658,2697,2094,1368,102]
+                    else:
+                        emotion_cause = [101,6929,702,3221,1333,1728,2094,1368] + document[tmp[j]+1:tmp[j+1]-1] + [2190,2418,4638,2658,2697,2094,1368,102]                    
+
+                    input = emotion_cause + document
+
+                    #print(input)
+                    bert_clause_b_1 = [i for i, x in enumerate(input) if x == 101]
+                    bert_clause_b_1.remove(0)
+                    bert_clause_b_2 = torch.tensor([bert_clause_b_1])
+                    input_ids = torch.tensor([input])
+
+                    segments_ids = []
+                    segments_indices = [k for k, x in enumerate(input) if x == 101]
+                    segments_indices.append(len(input))
+                    for k in range(len(segments_indices)-1):
+                        semgent_len = segments_indices[k+1] - segments_indices[k]
+                        if k % 2 == 0:
+                            segments_ids.extend([0] * semgent_len)
+                        else:
+                            segments_ids.extend([1] * semgent_len)
+                    bert_segment_b = torch.tensor([segments_ids])
+                    #print(input,segments_ids)
+                    #print(input_ids.shape)
+                    if input_ids.shape[1]>512:
+                        print(doc_id_2[i])
+                        continue
+
+                    bert_output = self.bert(input_ids=input_ids.to(DEVICE),
+                                            attention_mask = input_ids.bool().long().to(DEVICE))
+
+                    #print(bert_output[0].shape,bert_output.last_hidden_state.shape)
+                    doc_sents_h = self.batched_index_select(bert_output, bert_clause_b_2.to(DEVICE))
+                    doc_sents_h = self.lstm1(self.fc1(doc_sents_h).permute(1,0,2)).permute(1,0,2)
+                    doc_sents_h = torch.cat((doc_sents_h[:,0:1,:].expand_as(doc_sents_h[:,1:,:]),doc_sents_h[:,1:,:]),2)
+                    pred_c_ = F.softmax(self.fc(doc_sents_h),-1).squeeze(0)
+                    for k in range(pred_c_.shape[0]):
+                        if pred_c_[k,1] >=0.5:
+                            pair2.append(int(doc_id[i] * 10000 +k * 100 + j+101))
+                            if pred_c_[k,1] >=0.6:
+                                pair4.append(int(doc_id[i] * 10000 +k * 100 + j+101))
+                                if pred_c_[k,1] >=0.7:
+                                    pair6.append(int(doc_id[i] * 10000 +k * 100 + j+101))
+                                    if pred_c_[k,1] >=0.8:
+                                        pair8.append(int(doc_id[i] * 10000 +k * 100 + j+101))
+                                        if pred_c_[k,1] >=0.9:
+                                            pair10.append(int(doc_id[i] * 10000 +k * 100 + j+101)) 
 
 
         return pair1,pair2,pred_e,pred_c,pair3,pair4,pair5,pair6,pair7,pair8,pair9,pair10
