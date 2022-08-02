@@ -1,5 +1,5 @@
 # CD-MRC
-This repo contains the code of the following paper:
+This repo contains the code of our TOIS'2022 paper:
 
 A Consistent Dual-MRC Framework for Emotion-Cause Pair Extraction
 
